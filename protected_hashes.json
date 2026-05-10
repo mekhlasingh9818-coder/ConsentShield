@@ -1,0 +1,26 @@
+[
+    {
+        "image_name": "image1.jpg",
+        "hash": "e7669c33648c9999"
+    },
+    {
+        "image_name": "image2.jpg",
+        "hash": "fae4956b849e9819"
+    },
+    {
+        "image_name": "image3.jpg",
+        "hash": "b3c34cd0c6cc9cd9"
+    },
+    {
+        "image_name": "image4.jpg",
+        "hash": "ec3093c73c1b98cd"
+    },
+    {
+        "image_name": "image5.jpg",
+        "hash": "eb61e4f9b69c1282"
+    },
+    {
+        "image_name": "image6.jpg",
+        "hash": "944a623b631fb16e"
+    }
+]
