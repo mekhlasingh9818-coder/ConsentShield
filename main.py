@@ -61,6 +61,8 @@ with open(JSON_FILE, "w") as file:
 print("\nScanning uploads...\n")
 
 # Scan uploads
+print("\nScanning uploads...\n")
+
 for upload_file in os.listdir(UPLOAD_FOLDER):
     upload_path = os.path.join(UPLOAD_FOLDER, upload_file)
 
@@ -68,15 +70,19 @@ for upload_file in os.listdir(UPLOAD_FOLDER):
 
         upload_hashes = generate_hashes(upload_path)
 
-        print(f"\nChecking: {upload_file}")
+        print("=" * 50)
+        print(f"Upload Checked: {upload_file}")
 
-        match_found = False
+        best_result = {
+            "risk": "SAFE",
+            "matched_with": None,
+            "strong_count": 0,
+            "possible_count": 0,
+            "scores": {}
+        }
 
         for protected in hashes:
             scores = compare_hashes(upload_hashes, protected["hashes"])
-
-            print(f"\nCompared with {protected['image_name']}")
-            print("Scores:", scores)
 
             strong_matches = 0
             possible_matches = 0
@@ -88,16 +94,41 @@ for upload_file in os.listdir(UPLOAD_FOLDER):
                     possible_matches += 1
 
             if strong_matches >= 2:
-                print("🚨 STRONG MATCH FOUND")
-                match_found = True
-
+                risk = "STRONG MATCH"
             elif strong_matches >= 1 and possible_matches >= 1:
-                print("⚠ POSSIBLE MATCH FOUND")
-                match_found = True
-
+                risk = "POSSIBLE MATCH"
             elif possible_matches >= 2:
-                print("⚠ POSSIBLE MATCH FOUND")
-                match_found = True
+                risk = "POSSIBLE MATCH"
+            else:
+                risk = "SAFE"
 
-        if not match_found:
-            print("✅ SAFE IMAGE")
+            if risk == "STRONG MATCH":
+                best_result = {
+                    "risk": risk,
+                    "matched_with": protected["image_name"],
+                    "strong_count": strong_matches,
+                    "possible_count": possible_matches,
+                    "scores": scores
+                }
+                break
+
+            elif risk == "POSSIBLE MATCH" and best_result["risk"] == "SAFE":
+                best_result = {
+                    "risk": risk,
+                    "matched_with": protected["image_name"],
+                    "strong_count": strong_matches,
+                    "possible_count": possible_matches,
+                    "scores": scores
+                }
+
+        print(f"Risk Level: {best_result['risk']}")
+
+        if best_result["matched_with"]:
+            print(f"Matched With: {best_result['matched_with']}")
+            print(f"Strong Hash Matches: {best_result['strong_count']}")
+            print(f"Possible Hash Matches: {best_result['possible_count']}")
+            print(f"Hash Scores: {best_result['scores']}")
+        else:
+            print("No protected image match found.")
+
+        print("=" * 50)
