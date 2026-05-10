@@ -3,34 +3,52 @@ import imagehash
 import json
 import os
 
-IMAGE_FOLDER = "protected_images"
+PROTECTED_FOLDER = "protected_images"
+UPLOAD_FOLDER = "uploads"
 JSON_FILE = "protected_hashes.json"
+
+def generate_hashes(image_path):
+    image = Image.open(image_path)
+
+    return {
+        "phash": str(imagehash.phash(image)),
+        "dhash": str(imagehash.dhash(image)),
+        "whash": str(imagehash.whash(image)),
+        "ahash": str(imagehash.average_hash(image))
+    }
+
+def compare_hashes(upload_hashes, protected_hashes):
+    scores = {}
+
+    for hash_type in ["phash", "dhash", "whash", "ahash"]:
+        upload_hash = imagehash.hex_to_hash(upload_hashes[hash_type])
+        protected_hash = imagehash.hex_to_hash(protected_hashes[hash_type])
+
+        difference = upload_hash - protected_hash
+        scores[hash_type] = difference
+
+    return scores
 
 # Load existing hashes
 with open(JSON_FILE, "r") as file:
     hashes = json.load(file)
 
-# Get names of already saved images
 saved_images = [item["image_name"] for item in hashes]
 
-# Go through every file in protected_images folder
-for filename in os.listdir(IMAGE_FOLDER):
-    image_path = os.path.join(IMAGE_FOLDER, filename)
+# Protect new images
+for filename in os.listdir(PROTECTED_FOLDER):
+    image_path = os.path.join(PROTECTED_FOLDER, filename)
 
-    # Only process image files
     if filename.lower().endswith((".jpg", ".jpeg", ".png")):
 
-        # Avoid saving same image again and again
         if filename in saved_images:
-            print(f"{filename} already protected. Skipping.")
             continue
 
-        image = Image.open(image_path)
-        hash_value = str(imagehash.phash(image))
+        image_hashes = generate_hashes(image_path)
 
         data = {
             "image_name": filename,
-            "hash": hash_value
+            "hashes": image_hashes
         }
 
         hashes.append(data)
@@ -40,4 +58,46 @@ for filename in os.listdir(IMAGE_FOLDER):
 with open(JSON_FILE, "w") as file:
     json.dump(hashes, file, indent=4)
 
-print("Protection database updated.")
+print("\nScanning uploads...\n")
+
+# Scan uploads
+for upload_file in os.listdir(UPLOAD_FOLDER):
+    upload_path = os.path.join(UPLOAD_FOLDER, upload_file)
+
+    if upload_file.lower().endswith((".jpg", ".jpeg", ".png")):
+
+        upload_hashes = generate_hashes(upload_path)
+
+        print(f"\nChecking: {upload_file}")
+
+        match_found = False
+
+        for protected in hashes:
+            scores = compare_hashes(upload_hashes, protected["hashes"])
+
+            print(f"\nCompared with {protected['image_name']}")
+            print("Scores:", scores)
+
+            strong_matches = 0
+            possible_matches = 0
+
+            for score in scores.values():
+                if score <= 8:
+                    strong_matches += 1
+                elif score <= 20:
+                    possible_matches += 1
+
+            if strong_matches >= 2:
+                print("🚨 STRONG MATCH FOUND")
+                match_found = True
+
+            elif strong_matches >= 1 and possible_matches >= 1:
+                print("⚠ POSSIBLE MATCH FOUND")
+                match_found = True
+
+            elif possible_matches >= 2:
+                print("⚠ POSSIBLE MATCH FOUND")
+                match_found = True
+
+        if not match_found:
+            print("✅ SAFE IMAGE")
