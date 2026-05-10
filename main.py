@@ -2,10 +2,12 @@ from PIL import Image
 import imagehash
 import json
 import os
+from datetime import datetime
 
 PROTECTED_FOLDER = "protected_images"
 UPLOAD_FOLDER = "uploads"
 JSON_FILE = "protected_hashes.json"
+ALERT_FILE = "alerts.json"
 
 def generate_hashes(image_path):
     image = Image.open(image_path)
@@ -25,7 +27,7 @@ def compare_hashes(upload_hashes, protected_hashes):
         protected_hash = imagehash.hex_to_hash(protected_hashes[hash_type])
 
         difference = upload_hash - protected_hash
-        scores[hash_type] = difference
+        scores[hash_type] = int(difference)
 
     return scores
 
@@ -57,6 +59,25 @@ for filename in os.listdir(PROTECTED_FOLDER):
 # Save updated hashes
 with open(JSON_FILE, "w") as file:
     json.dump(hashes, file, indent=4)
+
+def save_alert(upload_file, result):
+    with open(ALERT_FILE, "r") as file:
+        alerts = json.load(file)
+
+    alert = {
+        "upload_file": upload_file,
+        "risk": result["risk"],
+        "matched_with": result["matched_with"],
+        "strong_count": result["strong_count"],
+        "possible_count": result["possible_count"],
+        "scores": result["scores"],
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    alerts.append(alert)
+
+    with open(ALERT_FILE, "w") as file:
+        json.dump(alerts, file, indent=4)
 
 print("\nScanning uploads...\n")
 
@@ -130,5 +151,8 @@ for upload_file in os.listdir(UPLOAD_FOLDER):
             print(f"Hash Scores: {best_result['scores']}")
         else:
             print("No protected image match found.")
+        if best_result["risk"] != "SAFE":
+            save_alert(upload_file, best_result)
+            print("Alert saved.")
 
         print("=" * 50)

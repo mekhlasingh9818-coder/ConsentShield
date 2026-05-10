@@ -1,0 +1,16 @@
+[
+    {
+        "upload_file": "test1.jpg",
+        "risk": "POSSIBLE MATCH",
+        "matched_with": "image3.jpg",
+        "strong_count": 0,
+        "possible_count": 2,
+        "scores": {
+            "phash": 42,
+            "dhash": 34,
+            "whash": 18,
+            "ahash": 19
+        },
+        "timestamp": "2026-05-11 01:44:29"
+    }
+]
